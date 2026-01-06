@@ -1,11 +1,34 @@
 "use client";
 import { useEffect, useState } from "react";
 
+/* ===============================
+   TYPES
+================================ */
 interface TicketForm {
   name: string;
   email: string;
   category: string;
   description: string;
+}
+
+/* ===============================
+   SLOW AI TYPING (HUMAN-LIKE)
+================================ */
+function useSlowTyping(text: string, speed = 120) {
+  const [display, setDisplay] = useState("");
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (index < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplay((prev) => prev + text[index]);
+        setIndex(index + 1);
+      }, speed);
+      return () => clearTimeout(timeout);
+    }
+  }, [index, text, speed]);
+
+  return display;
 }
 
 export default function Home() {
@@ -18,21 +41,25 @@ export default function Home() {
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
-
-  // 🌗 THEME STATE
   const [darkMode, setDarkMode] = useState(true);
 
-  // Load saved theme
+  /* ---------------- THEME ---------------- */
   useEffect(() => {
     const saved = localStorage.getItem("theme");
     if (saved === "light") setDarkMode(false);
   }, []);
 
-  // Save theme
   useEffect(() => {
     localStorage.setItem("theme", darkMode ? "dark" : "light");
   }, [darkMode]);
 
+  /* ---------------- AI TEXT ---------------- */
+  const aiTitle = useSlowTyping(
+    "BHUNEER AI SUPPORT SYSTEM",
+    110 // 👈 slower, realistic
+  );
+
+  /* ---------------- SUBMIT ---------------- */
   async function submitTicket(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
@@ -60,155 +87,180 @@ export default function Home() {
 
   return (
     <div
-      className={`min-h-screen relative flex items-center justify-center px-4 transition-colors
-        ${
-          darkMode
-            ? "bg-gradient-to-br from-[#0f2027] via-[#203a43] to-[#2c5364]"
-            : "bg-gradient-to-br from-slate-100 to-slate-200"
-        }`}
+      className={`min-h-screen relative flex items-center justify-center px-6
+        ${darkMode ? "bg-black text-white" : "bg-slate-100 text-slate-900"}`}
     >
-      {/* Background Glow (dark only) */}
+      {/* AI GRID */}
       {darkMode && (
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.15),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,255,255,0.04)_1px,transparent_1px)] bg-[size:40px_40px]" />
       )}
 
-      {/* Card */}
-      <div
-        className={`relative w-full max-w-xl rounded-2xl shadow-2xl p-8 backdrop-blur-xl transition-colors
-          ${
-            darkMode
-              ? "bg-white/10 border border-white/20 text-white"
-              : "bg-white border border-slate-200 text-slate-800"
-          }`}
-      >
-        {/* 🌗 THEME TOGGLE */}
-        <button
-          onClick={() => setDarkMode(!darkMode)}
-          className="absolute top-4 right-4 text-sm px-3 py-1 rounded-full border transition
-            dark:border-white/20 border-slate-300"
+      {/* CARD */}
+      <div className="relative z-10 w-full max-w-xl rounded-3xl p-[1px] bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600">
+        <div
+          className={`rounded-3xl p-8 backdrop-blur-xl
+            ${darkMode ? "bg-black/80 border border-white/10" : "bg-white border border-slate-200"}`}
         >
-          {darkMode ? "☀️ Light" : "🌙 Dark"}
-        </button>
+          {/* THEME TOGGLE */}
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="absolute top-4 right-4 text-xs px-3 py-1 rounded-full border border-white/20 hover:bg-white/10"
+          >
+            {darkMode ? "☀ LIGHT" : "🌙 DARK"}
+          </button>
 
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">
-            🚀 Bhuneer Support
-          </h1>
-          <p className={`text-sm mt-2 ${darkMode ? "text-white/70" : "text-slate-500"}`}>
-            Create a support ticket and track it in real time
-          </p>
-        </div>
-
-        {/* Success */}
-        {success && (
-          <div className="mb-6 rounded-xl bg-green-500/20 border border-green-400/30 p-5 text-sm text-center">
-            <h2 className="text-lg font-semibold mb-2">
-              🎉 Ticket Created Successfully
-            </h2>
-            <p className="mb-2">Your ticket number:</p>
-            <div className="font-mono text-xl tracking-wider">
-              {success}
-            </div>
-            <button
-              className="mt-4 text-xs underline"
-              onClick={() => setSuccess(null)}
+          {/* HEADER */}
+          <div className="text-center mb-10">
+            <h1 className="text-3xl font-mono font-bold tracking-widest bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500 bg-clip-text text-transparent">
+              {aiTitle}
+              <span className="ml-1 animate-pulse">▌</span>
+            </h1>
+            <p
+              className={`mt-3 text-xs tracking-[0.35em] uppercase
+                ${darkMode ? "text-white/60" : "text-slate-500"}`}
             >
-              Create another ticket
-            </button>
+              Autonomous Issue Intelligence System
+            </p>
           </div>
-        )}
 
-        {/* Form */}
-        {!success && (
-          <form onSubmit={submitTicket} className="space-y-5">
-            {[
-              { label: "Full Name", type: "text", key: "name" },
-              { label: "Email", type: "email", key: "email" },
-            ].map((f) => (
-              <div key={f.key}>
-                <label className="text-xs uppercase tracking-wide">
-                  {f.label}
+          {/* SUCCESS */}
+          {success && (
+            <div className="mb-8 rounded-2xl border border-green-400/30 bg-green-500/10 p-6 text-center">
+              <p className="text-green-400 tracking-widest text-sm mb-2">
+                ✔ REQUEST ACCEPTED
+              </p>
+              <div className="font-mono text-2xl tracking-widest text-green-400">
+                {success}
+              </div>
+              <button
+                className="mt-5 text-xs underline opacity-70 hover:opacity-100"
+                onClick={() => setSuccess(null)}
+              >
+                CREATE NEW REQUEST
+              </button>
+            </div>
+          )}
+
+          {/* FULL FORM */}
+          {!success && (
+            <form onSubmit={submitTicket} className="space-y-6">
+              {/* NAME */}
+              <div>
+                <label className="block text-[10px] tracking-[0.35em] mb-2">
+                  OPERATOR NAME
                 </label>
                 <input
                   required
-                  type={f.type}
-                  value={(form as any)[f.key]}
+                  value={form.name}
                   onChange={(e) =>
-                    setForm({ ...form, [f.key]: e.target.value })
+                    setForm({ ...form, name: e.target.value })
                   }
-                  className={`mt-1 w-full rounded-lg px-4 py-2 text-sm border focus:outline-none
+                  className={`w-full rounded-xl px-4 py-3 text-sm border
                     ${
                       darkMode
-                        ? "bg-white/10 border-white/20 focus:ring-2 focus:ring-blue-500"
-                        : "bg-white border-slate-300 focus:ring-2 focus:ring-blue-400"
+                        ? "bg-black/60 border-cyan-500/30 text-white focus:ring-2 focus:ring-cyan-400/60"
+                        : "bg-white border-slate-300 text-slate-900 focus:ring-2 focus:ring-blue-400"
                     }`}
                 />
               </div>
-            ))}
 
-            <div>
-              <label className="text-xs uppercase tracking-wide">
-                Category
-              </label>
-              <select
-                value={form.category}
-                onChange={(e) =>
-                  setForm({ ...form, category: e.target.value })
-                }
-                className={`mt-1 w-full rounded-lg px-4 py-2 text-sm border
+              {/* EMAIL */}
+              <div>
+                <label className="block text-[10px] tracking-[0.35em] mb-2">
+                  COMMUNICATION EMAIL
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={(e) =>
+                    setForm({ ...form, email: e.target.value })
+                  }
+                  className={`w-full rounded-xl px-4 py-3 text-sm border
+                    ${
+                      darkMode
+                        ? "bg-black/60 border-cyan-500/30 text-white focus:ring-2 focus:ring-cyan-400/60"
+                        : "bg-white border-slate-300 text-slate-900 focus:ring-2 focus:ring-blue-400"
+                    }`}
+                />
+              </div>
+
+              {/* CATEGORY */}
+              <div>
+                <label className="block text-[10px] tracking-[0.35em] mb-2">
+                  INCIDENT CATEGORY
+                </label>
+                <select
+                  value={form.category}
+                  onChange={(e) =>
+                    setForm({ ...form, category: e.target.value })
+                  }
+                  className={`w-full rounded-xl px-4 py-3 text-sm border
+                    ${
+                      darkMode
+                        ? "bg-black/60 border-cyan-500/30 text-white"
+                        : "bg-white border-slate-300 text-slate-900"
+                    }`}
+                >
+                  <option>Network</option>
+                  <option>Server</option>
+                  <option>Application</option>
+                </select>
+              </div>
+
+              {/* DESCRIPTION */}
+              <div>
+                <label className="block text-[10px] tracking-[0.35em] mb-2">
+                  INCIDENT DESCRIPTION
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                  className={`w-full rounded-xl px-4 py-3 text-sm border
+                    ${
+                      darkMode
+                        ? "bg-black/60 border-cyan-500/30 text-white focus:ring-2 focus:ring-cyan-400/60"
+                        : "bg-white border-slate-300 text-slate-900 focus:ring-2 focus:ring-blue-400"
+                    }`}
+                />
+              </div>
+
+              {/* SUBMIT */}
+              <button
+                disabled={loading}
+                className={`w-full py-4 rounded-xl text-sm font-bold tracking-widest transition
                   ${
-                    darkMode
-                      ? "bg-white/10 border-white/20"
-                      : "bg-white border-slate-300"
+                    loading
+                      ? "bg-slate-500 cursor-not-allowed"
+                      : darkMode
+                        ? "bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 hover:scale-[1.03]"
+                        : "bg-slate-900 text-white hover:bg-slate-800"
                   }`}
               >
-                <option>Network</option>
-                <option>Server</option>
-                <option>Application</option>
-              </select>
-            </div>
+                {loading ? "PROCESSING…" : "SUBMIT TO AI CORE"}
+              </button>
+            </form>
+            
+          )}
+          {/* DASHBOARD LINK */}
+<p
+  className={`mt-8 text-center text-[10px] tracking-[0.35em] uppercase
+    ${darkMode ? "text-white/50" : "text-slate-500"}`}
+>
+  <a
+    href="/dashboard"
+    className={`transition hover:underline
+      ${darkMode ? "hover:text-cyan-400" : "hover:text-slate-900"}`}
+  >
+    ACCESS COMMAND DASHBOARD →
+  </a>
+</p>
 
-            <div>
-              <label className="text-xs uppercase tracking-wide">
-                Issue Description
-              </label>
-              <textarea
-                rows={4}
-                required
-                value={form.description}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
-                className={`mt-1 w-full rounded-lg px-4 py-2 text-sm border
-                  ${
-                    darkMode
-                      ? "bg-white/10 border-white/20"
-                      : "bg-white border-slate-300"
-                  }`}
-              />
-            </div>
-
-            <button
-              disabled={loading}
-              className={`w-full rounded-xl py-3 text-sm font-semibold transition
-                ${
-                  loading
-                    ? "bg-slate-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
-                }`}
-            >
-              {loading ? "Creating Ticket…" : "Create Ticket"}
-            </button>
-          </form>
-        )}
-
-        {/* Footer */}
-        <p className="mt-6 text-center text-xs opacity-70">
-          <a href="/dashboard" className="underline">
-            View Ticket Dashboard →
-          </a>
-        </p>
+        </div>
       </div>
     </div>
   );
