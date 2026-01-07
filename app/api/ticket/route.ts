@@ -2,18 +2,30 @@ export const runtime = "nodejs"; // REQUIRED
 
 import { google } from "googleapis";
 import { NextResponse } from "next/server";
+import nodemailer from "nodemailer";
 
+/* =========================
+   GOOGLE SHEETS CLIENT
+========================= */
 async function getSheetsClient() {
   const auth = new google.auth.GoogleAuth({
     credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS as string),
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
 
-  return google.sheets({
-    version: "v4",
-    auth,
-  });
+  return google.sheets({ version: "v4", auth });
 }
+
+/* =========================
+   NODEMAILER CLIENT
+========================= */
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.SUPPORT_EMAIL,
+    pass: process.env.SUPPORT_EMAIL_PASSWORD,
+  },
+});
 
 /* =========================
    CREATE TICKET (POST)
@@ -25,6 +37,7 @@ export async function POST(req: Request) {
 
     const sheets = await getSheetsClient();
 
+    // 1️⃣ Save ticket to Google Sheet
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID as string,
       range: "A1",
@@ -42,7 +55,39 @@ export async function POST(req: Request) {
       },
     });
 
+    // 2️⃣ Send email to Support Team
+    await transporter.sendMail({
+      from: `"Bhuneer AI Support" <${process.env.SUPPORT_EMAIL}>`,
+      to: process.env.SUPPORT_EMAIL,
+      subject: `🆕 New Support Ticket: ${ticketId}`,
+      html: `
+        <h3>New Support Ticket</h3>
+        <p><b>Ticket ID:</b> ${ticketId}</p>
+        <p><b>Name:</b> ${body.name}</p>
+        <p><b>Email:</b> ${body.email}</p>
+        <p><b>Category:</b> ${body.category}</p>
+        <p><b>Description:</b></p>
+        <p>${body.description}</p>
+      `,
+    });
+
+    // 3️⃣ (Optional) Auto-reply to user
+    await transporter.sendMail({
+      from: `"Bhuneer AI Support" <${process.env.SUPPORT_EMAIL}>`,
+      to: body.email,
+      subject: `🎫 Ticket Received: ${ticketId}`,
+      html: `
+        <p>Hello ${body.name},</p>
+        <p>Your support ticket has been received.</p>
+        <p><b>Ticket ID:</b> ${ticketId}</p>
+        <p>Our team will get back to you shortly.</p>
+        <br/>
+        <p>— Bhuneer AI Support</p>
+      `,
+    });
+
     return NextResponse.json({ success: true, ticketId });
+
   } catch (error: any) {
     console.error("POST ERROR:", error);
     return NextResponse.json(
