@@ -2,11 +2,12 @@ export const runtime = "nodejs"; // REQUIRED
 
 import { google } from "googleapis";
 import { NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+import * as nodemailer from "nodemailer";
+
 
 /* =========================
    GOOGLE SHEETS CLIENT
-========================= */
+========================= ap*/
 async function getSheetsClient() {
   const auth = new google.auth.GoogleAuth({
     credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS as string),
