@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 interface Ticket {
   ticketId: string;
@@ -14,22 +15,44 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const searchParams = useSearchParams();
+  const newTicketId = searchParams.get("new");
+
   useEffect(() => {
-    fetch("/api/ticket") // ✅ FIXED (singular)
+    fetch("/api/ticket")
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data)) {
-          setTickets(data);
-        } else {
+        if (!Array.isArray(data)) {
           setError("Failed to load tickets");
+          setLoading(false);
+          return;
         }
+
+        // 🔥 Inject newly created ticket if Sheets is slow
+        if (newTicketId) {
+          const exists = data.some(
+            (t: Ticket) => t.ticketId === newTicketId
+          );
+
+          if (!exists) {
+            data.unshift({
+              ticketId: newTicketId,
+              name: "You",
+              category: "New",
+              status: "OPEN",
+              createdAt: new Date().toISOString(),
+            });
+          }
+        }
+
+        setTickets(data);
         setLoading(false);
       })
       .catch(() => {
         setError("Unable to connect to server");
         setLoading(false);
       });
-  }, []);
+  }, [newTicketId]);
 
   if (loading) {
     return (
@@ -49,7 +72,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6">
-      
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
@@ -86,45 +108,49 @@ export default function Dashboard() {
             </thead>
 
             <tbody>
-              {tickets.map((t) => (
-                <tr
-                  key={t.ticketId}
-                  className="border-t border-white/10 hover:bg-white/10 transition"
-                >
-                  <td className="p-3 font-mono text-xs text-blue-300">
-                    {t.ticketId}
-                  </td>
+              {tickets.map((t) => {
+                const isNew = t.ticketId === newTicketId;
 
-                  <td className="p-3">{t.name}</td>
-
-                  <td className="p-3">{t.category}</td>
-
-                  <td className="p-3">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium
-                        ${
-                          t.status === "OPEN"
-                            ? "bg-green-500/20 text-green-300"
-                            : "bg-gray-500/20 text-gray-300"
-                        }`}
-                    >
-                      {t.status}
-                    </span>
-                  </td>
-
-                  <td className="p-3 text-xs text-white/60">
-                    {t.createdAt
-                      ? new Date(t.createdAt).toLocaleString()
-                      : "-"}
-                  </td>
-                </tr>
-              ))}
+                return (
+                  <tr
+                    key={t.ticketId}
+                    className={`border-t border-white/10 transition
+                      ${
+                        isNew
+                          ? "bg-green-500/20 animate-pulse"
+                          : "hover:bg-white/10"
+                      }`}
+                  >
+                    <td className="p-3 font-mono text-xs text-blue-300">
+                      {t.ticketId}
+                    </td>
+                    <td className="p-3">{t.name}</td>
+                    <td className="p-3">{t.category}</td>
+                    <td className="p-3">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium
+                          ${
+                            t.status === "OPEN"
+                              ? "bg-green-500/20 text-green-300"
+                              : "bg-gray-500/20 text-gray-300"
+                          }`}
+                      >
+                        {t.status}
+                      </span>
+                    </td>
+                    <td className="p-3 text-xs text-white/60">
+                      {t.createdAt
+                        ? new Date(t.createdAt).toLocaleString()
+                        : "-"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Footer */}
       <p className="mt-8 text-center text-xs text-white/40">
         Bhuneer Support Dashboard • Powered by Next.js
       </p>
